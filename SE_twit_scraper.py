@@ -47,7 +47,7 @@ class Scraper:
         url="%s/search?q=%s&src=typd"%(self.base_url,search_query)
         print "processing page:", url
         driver.get(url) #open the webpage I want to scroll
-        for i in range(1,random.randint(25)): #scroll this number of times (get 20 tweets per scroll on twitter)
+        for i in range(1,31): #scroll this number of times (get 20 tweets per scroll on twitter)
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(random.randint(1,3)) #sleep in between scrolls to look human
         html_source = driver.page_source
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     scrap = Scraper()
     
     #now what we want to scrape is...
-    searchterms = [("disneyland","anaheim"), ("california adventure", "anaheim"), ("raging waters", "san jose"), ("great america", "santa clara")] 
+    searchterms = [("disneyland","anaheim"), ("california adventure", "anaheim")]#, ("raging waters", "san jose"), ("great america", "santa clara")] 
     start = datetime.datetime.strptime("01-08-2015", "%d-%m-%Y")
     end = datetime.datetime.strptime("16-02-2016", "%d-%m-%Y")
     date_generated = [start + datetime.timedelta(days=x) for x in range(0, (end-start).days)]
