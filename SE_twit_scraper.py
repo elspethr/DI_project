@@ -5,7 +5,7 @@
 #Description:
 #remember to source ~/.bashrc before running to get correct version of python on my mac
 #code to scrape a twitter page without API; include scrolling to get entire search contents
-#this code modified from http://stackoverflow.com/questions/28871115/, with some help
+#this code modified from http://stackoverflow.com/questions/28871115/
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -23,6 +23,10 @@ import time
 import datetime
 import re #regular expressions
 from bs4 import BeautifulSoup
+import MySQLdb
+
+conn = MySQLdb.connect(host="localhost", port=3306, user="root", db="disney_db")
+cursor = conn.cursor()
 
 class Scraper:
     def __init__(self):
@@ -41,38 +45,36 @@ class Scraper:
                                                                     end_date["year"],end_date["month"],end_date["day"]))
         url="%s/search?q=%s&src=typd"%(self.base_url,search_query)
         driver.get(url)
-        for i in range(1,3):
+        for i in range(1,2):
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(random.randint(2,5))
         html_source = driver.page_source
         data = html_source.encode('utf-8')
-        #with open("%s.txt"%(output_name), "wb") as f:
-        #    f.write(data)
+        #with open("testdate.txt", "wb") as f:
+        #    f.write(data)  #write text straight to file if needed
         soup = BeautifulSoup(data, "html.parser")
         tweets = soup.find_all('li', 'js-stream-item')
-        tweet_text = soup.find_all('p', 'js-tweet-text')
-        print tweet_text[1]
-        tweet_timestamps = soup.find_all('a', 'tweet-timestamp')
-        print tweet_timestamps[1]
-        for i in range(0, len(tweet_text)):
-            text = tweets[i].contents[1]#get_text().encode('ascii', 'ignore')
-            timestamp = tweet_timestamps[i]["title"]
-            #print(i, timestamp, text)
-
-
-        #tweettext = soup('p', {'class': ''})
-        #tweetid = tweettext[0]
-        #datetext = soup('p', {'class': 'tweet-timestamp js-permalink js-nav js-tooltip'})
-        #date = datetext[0]
-        #messagetext = soup('p', {'class': 'TweetTextSize  js-tweet-text tweet-text'})
-        #message = messagetext[0]
-        #print (username, "\n", "@", userhandle, "\n", "\n", url, "\n", "\n", message, "\n", "\n", retweetcount, "\n", "\n", favcount) #extra linebreaks for ease of reading
+        for tweet in tweets:
+            if tweet.find('p','tweet-text'):
+                tweet_user = tweet.find('span','username').text.encode('utf8')
+                tweet_text = tweet.find('p','tweet-text').text.encode('utf8')
+                tweet_id = tweet['data-item-id'].encode('utf8')
+                timestamp = tweet.find('a','tweet-timestamp')['title'].encode('utf8')
+                tweet_timestamp = str(datetime.datetime.strptime(timestamp, '%I:%M %p - %d %b %Y')) #this is poorly encoded but ok for now
+                #print(tweet_id, tweet_user, tweet_timestamp, tweet_text)
+                cursor.execute("INSERT INTO twitter_data (tweet_id, timestamp, user, text) VALUES (%s,%s,%s,%s)",(tweet_id, tweet_timestamp, tweet_user, tweet_text))
+                conn.commit()
+            else:
+                continue
+        driver.quit()
 
 if __name__ == "__main__":
     scrap = Scraper()
     scrap.process("golden gate", "san francisco",
                     {"year":2015,"month":7,"day":5},
-                    {"year":2015,"month":7,"day":7})
+                    {"year":2015,"month":7,"day":7}) #run a test query
+
+conn.close()                    
 
 #/search?q=disneyland%20near%3A%22disneyland%22%20within%3A15mi%20since%3A2015-08-01%20until%3A2015-09-31&src=typd") my real query for later
    
