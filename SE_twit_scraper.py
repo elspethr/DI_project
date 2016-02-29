@@ -25,6 +25,7 @@ import re #regular expressions
 from bs4 import BeautifulSoup
 import MySQLdb
 
+
 conn = MySQLdb.connect(host="localhost", port=3306, user="root", db="disney_db") #make db connection
 cursor = conn.cursor() #mysqdb needs this
 
@@ -64,7 +65,11 @@ class Scraper:
                 timestamp = tweet.find('a','tweet-timestamp')['title'].encode('utf8')
                 tweet_timestamp = str(datetime.datetime.strptime(timestamp, '%I:%M %p - %d %b %Y')) #a bit hacky but works for now at least
                 query = "INSERT INTO twitter_data (tweet_id, timestamp, user, text, search, location, distance) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(query, (tweet_id, tweet_timestamp, tweet_user, tweet_text, search_term, location, distance))
+                try: #try is for exception handling (Russian, etc.)
+                    cursor.execute(query, (tweet_id, tweet_timestamp, tweet_user, tweet_text, search_term, location, distance))
+                except:
+                    tweet_text = ""
+                    cursor.execute(query, (tweet_id, tweet_timestamp, tweet_user, tweet_text, search_term, location, distance))
                 conn.commit() #commit each line in case something fails
         print "added", len(tweets), "tweets"
        
@@ -72,20 +77,26 @@ if __name__ == "__main__":
     scrap = Scraper()
     
     #now what we want to scrape is...
-    searchterms = [("disneyland","anaheim"), ("california adventure", "anaheim")]#, ("raging waters", "san jose"), ("great america", "santa clara")] 
-    start = datetime.datetime.strptime("01-08-2015", "%d-%m-%Y")
-    end = datetime.datetime.strptime("16-02-2016", "%d-%m-%Y")
+    searchterms = [("disneyland", "anaheim", 5)]#, ("california adventure", "anaheim", 5)]#, , ("great america", "santa clara", 5)]
+    start = datetime.datetime.strptime("01-01-2015", "%d-%m-%Y") #01-01-2015
+    end = datetime.datetime.strptime("01-08-2015", "%d-%m-%Y") #01-08-2015
     date_generated = [start + datetime.timedelta(days=x) for x in range(0, (end-start).days)]
 
     print "start scraping!"
     #now get it!    
-    for term, place in searchterms:
+    for term, place, distance in searchterms:
         for date in date_generated:
+            check = "SELECT * FROM completed_searches WHERE date=%s AND search=%s AND location=%s AND distance=%s"
+            cursor.execute(check, (date, term, place, distance))
+            if cursor.fetchone() != None: continue
             next_date = date + datetime.timedelta(days=1)
             #print term, place, date.year, date.month, date.day, next_date.year, next_date.month, next_date.day #test
             scrap.process(term, place, 5,
                             {"year":date.year, "month":date.month, "day":date.day}, 
                             {"year":next_date.year, "month":next_date.month, "day":next_date.day})
+            completed = "INSERT INTO completed_searches (date, search, location, distance) VALUES (%s, %s, %s, %s)"
+            cursor.execute(completed, (date, term, place, distance))
+            conn.commit() #commit each line in case something fails
 
     scrap.driver.quit()
                    
