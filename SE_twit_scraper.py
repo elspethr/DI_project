@@ -3,9 +3,8 @@
 #2016/02/14
 
 #Description:
-#remember to source ~/.bashrc before running to get correct version of python on my mac
 #code to scrape a twitter page without API; include scrolling to get entire search contents
-#this code modified from http://stackoverflow.com/questions/28871115/
+
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -77,9 +76,9 @@ if __name__ == "__main__":
     scrap = Scraper()
     
     #now what we want to scrape is...
-    searchterms = [("disneyland", "anaheim", 5)]#, ("california adventure", "anaheim", 5)]#, , ("great america", "santa clara", 5)]
-    start = datetime.datetime.strptime("01-01-2015", "%d-%m-%Y") #01-01-2015
-    end = datetime.datetime.strptime("01-08-2015", "%d-%m-%Y") #01-08-2015
+    searchterms = [("ocean beach", "san francisco", 5)]#, ("california adventure", "anaheim", 5)]#, , ("great america", "santa clara", 5)]
+    start = datetime.datetime.strptime("01-01-2015", "%d-%m-%Y")
+    end = datetime.datetime.strptime("01-01-2016", "%d-%m-%Y")
     date_generated = [start + datetime.timedelta(days=x) for x in range(0, (end-start).days)]
 
     print "start scraping!"
