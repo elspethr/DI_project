@@ -76,9 +76,9 @@ if __name__ == "__main__":
     scrap = Scraper()
     
     #now what we want to scrape is...
-    searchterms = [("ocean beach", "san francisco", 5)]#, ("california adventure", "anaheim", 5)]#, , ("great america", "santa clara", 5)]
-    start = datetime.datetime.strptime("01-01-2015", "%d-%m-%Y")
-    end = datetime.datetime.strptime("01-01-2016", "%d-%m-%Y")
+    searchterms = [("disneyland", "anaheim", 5)]#, [("ocean beach", "san francisco", 5)], ("great america", "santa clara", 5)]
+    start = datetime.datetime.strptime("25-12-2015", "%d-%m-%Y")
+    end = datetime.datetime.strptime("19-05-2016", "%d-%m-%Y")
     date_generated = [start + datetime.timedelta(days=x) for x in range(0, (end-start).days)]
 
     print "start scraping!"
