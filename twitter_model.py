@@ -22,18 +22,22 @@ cursor.execute("SELECT id, timestamp, location FROM twitter_data_copy WHERE loca
 rows = cursor.fetchall()
 tweetdf = pd.DataFrame( [[ij for ij in i] for i in rows] )
 tweetdf.rename(columns={0: 'tweetid', 1: 'timestamps'}, inplace=True)
-print len(tweetdf.index)
+#print tweetdf.head()
 
 #wait time data
 cursor.execute("SELECT * FROM recorded_dl_crowd_data")
 wtrows = cursor.fetchall()
 waitdf = pd.DataFrame( [[ij for ij in i] for i in wtrows] )
-print len(waitdf.index)
+#print waitdf.head()
+
+#meanwaitDL <- apply(crowdsDL[,6:length(colnames(crowdsDL))], 1, mean, na.rm=TRUE)
 
 #done importing so close SQL connection
 conn.close() 
 
 #bin tweets by hour in range
+
+
 #bin wait times by hour in range
             
 
