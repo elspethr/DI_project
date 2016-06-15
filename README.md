@@ -17,7 +17,7 @@ So far I have built two different webscrapers and scraped historical weather dat
 
 I am currently working on building machine learning models with my training data and constructing the website.
 
-**In this repository, you'll find:""
+**In this repository, you'll find:**
 - a simple urllib scraper to get weather data (https://github.com/elspethr/DI_project/blob/master/get_weather_data.py)
 - a more complex selenium/BeautifulSoup scraper to get twitter data and port it to a MySQL database (https://github.com/elspethr/DI_project/blob/master/SE_twit_scraper.py)
 - an R file that tidies up the scraped weather data (https://github.com/elspethr/DI_project/blob/master/clean_weather_data.R)
