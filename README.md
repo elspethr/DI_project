@@ -4,7 +4,7 @@
 
 I am working on a project that uses twitter and weather data to develop a predictive model of outdoor recreational park usage. 
 
-**View the website (in development) at: http://madcrowds.herokuapp.com/
+**View the website (in development) at: http://madcrowds.herokuapp.com/**
 
 This is an important application because:
 - Users care about crowds: they want to avoid delays and long lines, and to maximize their enjoyment of their recreation time (and they may be willing to pay more to avoid delays!)
