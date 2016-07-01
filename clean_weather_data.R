@@ -30,6 +30,10 @@ time <- strsplit(Anaheim_weather$DateUTC, "<")
 time <- unlist(lapply(time, function(l) l[[1]]))
 Anaheim_weather$DateUTC <- time
 
+Anaheim_weather$Wind_SpeedMPH[which(Anaheim_weather$Wind_SpeedMPH =='Calm')] <- 0
+Anaheim_weather$Wind_SpeedMPH <- as.numeric(Anaheim_weather$Wind_SpeedMPH)
+Anaheim_weather$TemperatureF <- as.numeric(Anaheim_weather$TemperatureF)
+
 #export to MySQL
 dbWriteTable(con, "Anaheim_weather", Anaheim_weather)
 #dbSendQuery(con, "load data infile 'YWB_airport.csv' into table YWB_airport fields terminated by ','") #To write into existing table
