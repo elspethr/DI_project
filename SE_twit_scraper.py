@@ -26,7 +26,7 @@ import MySQLdb
 
 
 conn = MySQLdb.connect(host="localhost", port=3306, user="root", db="disney_db") #make db connection
-cursor = conn.cursor() #mysqdb needs this
+cursor = conn.cursor() #mysqldb needs this
 
 class Scraper:
     def __init__(self):
@@ -76,9 +76,9 @@ if __name__ == "__main__":
     scrap = Scraper()
     
     #now what we want to scrape is...
-    searchterms = [("disneyland", "anaheim", 5)]#, [("ocean beach", "san francisco", 5)], ("great america", "santa clara", 5)]
-    start = datetime.datetime.strptime("25-12-2015", "%d-%m-%Y")
-    end = datetime.datetime.strptime("19-05-2016", "%d-%m-%Y")
+    searchterms = [("knott's berry farm", "buena park", 5)]#, [("ocean beach", "san francisco", 5)], ("great america", "santa clara", 5)]
+    start = datetime.datetime.strptime("31-12-2014", "%d-%m-%Y")
+    end = datetime.datetime.strptime("07-01-2016", "%d-%m-%Y")
     date_generated = [start + datetime.timedelta(days=x) for x in range(0, (end-start).days)]
 
     print "start scraping!"
