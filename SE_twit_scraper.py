@@ -71,14 +71,15 @@ class Scraper:
                     cursor.execute(query, (tweet_id, tweet_timestamp, tweet_user, tweet_text, search_term, location, distance))
                 conn.commit() #commit each line in case something fails
         print "added", len(tweets), "tweets"
+        if len(tweets) < 5: Scraper.process(self, search_term, location, distance, start_date, end_date)
        
 if __name__ == "__main__":
     scrap = Scraper()
     
     #now what we want to scrape is...
-    searchterms = [("knott's berry farm", "buena park", 5)]#, [("ocean beach", "san francisco", 5)], ("great america", "santa clara", 5)]
+    searchterms = [("universal studios", "los angeles", 5)] ##, ("knott's berry farm", "buena park", 5), [("ocean beach", "san francisco", 5)], ("great america", "santa clara", 5)]
     start = datetime.datetime.strptime("31-12-2014", "%d-%m-%Y")
-    end = datetime.datetime.strptime("07-01-2016", "%d-%m-%Y")
+    end = datetime.datetime.strptime("22-05-2015", "%d-%m-%Y")
     date_generated = [start + datetime.timedelta(days=x) for x in range(0, (end-start).days)]
 
     print "start scraping!"
@@ -100,6 +101,3 @@ if __name__ == "__main__":
     scrap.driver.quit()
                    
 conn.close() #close down SQL connection                   
-
-#/search?q=disneyland%20near%3A%22disneyland%22%20within%3A5mi%20since%3A2015-08-01%20until%3A2015-09-30&src=typd" (my full query)
-   

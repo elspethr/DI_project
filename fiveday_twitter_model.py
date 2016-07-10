@@ -9,6 +9,7 @@ import scipy.stats
 import sklearn as sk
 from sklearn import cross_validation, preprocessing, linear_model, neighbors, feature_extraction, grid_search, pipeline, metrics, ensemble
 import dill
+import sys
 dill.settings['recurse']=True
 
 
@@ -22,6 +23,15 @@ rows = cursor.fetchall()
 tweetdf = pd.DataFrame( [[ij for ij in i] for i in rows] )
 tweetdf.rename(columns={0: 'tweetid', 1: 'user', 2: 'timestamps', 3: 'search', 4: 'location'}, inplace=True)
 tweetdf.search = tweetdf.search.apply(lambda x: x.title())
+
+tweetdf['dates'] = [str(dt.date()) for dt in tweetdf.timestamps]
+#print len(tweetdf.search)
+#print tweetdf[(tweetdf['search'] == 'Disneyland') & (tweetdf['dates'] =='2015-07-22')]
+tweetdf.drop(tweetdf[(tweetdf['search'] == 'Disneyland') & (tweetdf['dates'] =='2015-07-17')].index, inplace=True)
+#print tweetdf[(tweetdf['search'] == 'Disneyland') & (tweetdf['dates'] =='2015-07-17')]
+#print tweetdf[(tweetdf['search'] == 'California Adventure') & (tweetdf['dates'] =='2015-07-22')]
+tweetdf.drop('dates', axis=1, inplace=True)
+#print len(tweetdf.search)
 
 #now bin tweets by day
 tweetdf['hour'] = [dt.hour for dt in tweetdf.timestamps]
@@ -57,6 +67,7 @@ tweetwaits = pd.merge(tweets_per_day, daily_weather, on='day')
 tweetwaits['business_day'] = [dt.weekday() >= 5 for dt in tweetwaits.day]
 us_holidays = holidays.UnitedStates()
 tweetwaits['holiday'] = [day in us_holidays for day in tweetwaits.day]
+tweetwaits['month'] = [dt.strftime('%B') for dt in tweetwaits.day]
 result = tweetwaits.dropna()
 
 #close SQL connection
@@ -74,14 +85,15 @@ result['size'] = np.where(result['search']=='Disneyland', 85, 67)
 result['tweetsperacre'] = result['user']/result['size']
 
 #add squares of hod, temp, and wind
-result['dow'] = [dt.weekday() for dt in result.day]
+result['dow'] = [dt.strftime('%A') for dt in result.day]
+#result['dow'] = [dt.weekday() for dt in result.day]
 #result['dow2'] = result['dow']**2
 result['temp2'] = result['temp']**2
 result['lotemp2'] = result['lotemp']**2
 result['wind2'] = result['wind']**2
 
 result['conditions'] = [str(x[0]).strip("[]'") for x in result['conditions']]
-result = pd.concat([result, pd.get_dummies(result.conditions), pd.get_dummies(result.search), pd.get_dummies(result.dow)], axis=1)
+result = pd.concat([result, pd.get_dummies(result.conditions), pd.get_dummies(result.search), pd.get_dummies(result.month), pd.get_dummies(result.dow)], axis=1)
 result.reset_index(inplace=True)
 result.drop('index', axis=1, inplace=True)
 result = result.dropna()
@@ -98,7 +110,8 @@ result.drop(['conditions', 'search'], axis=1, inplace=True)
 data = result.T.to_dict().values()
 y = result.tweetsperacre.as_matrix()
 
-
+#print data[0]
+#sys.exit()
 
 #model definition
 
@@ -114,8 +127,9 @@ class ColumnSelector(sk.base.BaseEstimator, sk.base.TransformerMixin):
    
 
 linpredictors = ['Clear', 'Haze', 'Heavy Rain', 'Light Rain', 'Mostly Cloudy', 'Overcast', 'Partly Cloudy', 
-                 'business_day', 'California Adventure', 'Disneyland', 'holiday', 0,1,2,3,4,5,6,
-                 'temp', 'lotemp', 'wind', 'humidity', 'precip']
+                 'business_day', 'California Adventure', 'Disneyland', 'holiday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday',
+                 'Friday', 'Saturday', 'Sunday','temp', 'lotemp', 'wind', 'humidity', 'precip', 'January', 'February', 'March',
+                 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 
 class EnsembleRegressor(sk.base.BaseEstimator, sk.base.RegressorMixin):
@@ -175,6 +189,7 @@ loo = cross_validation.KFold(len(y), 10, shuffle=True)
 scores = cross_validation.cross_val_score(tweet_reg, data, y, cv=loo)
 print scores.mean()
 tweet_reg.fit(data, y)
+print tweet_reg.score(data, y)
 dill.dump(tweet_reg, open('fiveday_model.pkl', 'w'))
 
 #prediction testing

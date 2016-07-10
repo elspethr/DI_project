@@ -9,6 +9,7 @@ import scipy.stats
 import sklearn as sk
 from sklearn import preprocessing, cross_validation, linear_model, neighbors, feature_extraction, grid_search, pipeline, metrics, ensemble
 import dill
+import sys
 dill.settings['recurse']=True
 
 
@@ -22,6 +23,14 @@ rows = cursor.fetchall()
 tweetdf = pd.DataFrame( [[ij for ij in i] for i in rows] )
 tweetdf.rename(columns={0: 'tweetid', 1: 'user', 2: 'timestamps', 3: 'search', 4: 'location'}, inplace=True)
 tweetdf.search = tweetdf.search.apply(lambda x: x.title())
+
+tweetdf['dates'] = [str(dt.date()) for dt in tweetdf.timestamps]
+#tweetdf.drop
+#print tweetdf[(tweetdf['search'] == 'Disneyland') & (tweetdf['dates'] =='2015-07-22')]
+tweetdf.drop(tweetdf[(tweetdf['search'] == 'Disneyland') & (tweetdf['dates'] =='2015-07-17')].index, inplace=True)
+#print tweetdf[(tweetdf['search'] == 'Disneyland') & (tweetdf['dates'] =='2015-07-22')]
+#print tweetdf[(tweetdf['search'] == 'California Adventure') & (tweetdf['dates'] =='2015-07-22')]
+tweetdf.drop('dates', axis=1, inplace=True)
 
 #now bin tweets by hour
 tweetdf['hod'] = [datetime.datetime(dt.year, dt.month, dt.day, dt.hour) for dt in tweetdf.timestamps]
@@ -39,7 +48,7 @@ weatherdf.rename(columns={0: 'temp', 1:'wind', 2:'precip', 3:'conditions', 4:'da
 #fix time zone on weather data and process
 weatherdf['datetimeUTC'] =  pd.to_datetime(weatherdf['datetimeUTC'], format='%Y-%m-%d %H:%M:%S.')
 weatherdf['timestamp'] = weatherdf['datetimeUTC'] - datetime.timedelta(hours=8)
-weatherdf['hod'] = [datetime.datetime(dt.year, dt.month, dt.day, dt.hour) for dt in weatherdf.timestamp] 
+weatherdf['hod'] = [datetime.datetime(dt.year, dt.month, dt.day, dt.hour) for dt in weatherdf.timestamp]
 weatherdf.wind.replace(-9999.0, float('NaN'), inplace=True)
 weatherdf.temp.replace(-9999.0, float('NaN'), inplace=True)
 hourly_weather = pd.DataFrame(weatherdf.groupby(['hod']).agg({'temp': np.nanmean, 'wind': np.nanmean, 'conditions': 'first'})).reset_index()
@@ -51,6 +60,8 @@ tweetwaits = pd.merge(tweets_per_hour, hourly_weather, on='hod')
 tweetwaits['business_day'] = [dt.weekday() >= 5 for dt in tweetwaits.hod]
 us_holidays = holidays.UnitedStates()
 tweetwaits['holiday'] = [day in us_holidays for day in tweetwaits.hod]
+tweetwaits['month'] = [dt.strftime('%B') for dt in tweetwaits.hod]
+tweetwaits['day'] = [dt.strftime('%A') for dt in tweetwaits.hod]
 
 #close SQL connection
 conn.close()
@@ -60,7 +71,7 @@ conn.close()
 #prep data for modelling
 
 #one hot encoding
-result = pd.concat([tweetwaits, pd.get_dummies(tweetwaits.search), pd.get_dummies(tweetwaits.conditions)], axis=1)
+result = pd.concat([tweetwaits, pd.get_dummies(tweetwaits.search), pd.get_dummies(tweetwaits.conditions), pd.get_dummies(tweetwaits.month), pd.get_dummies(tweetwaits.day)], axis=1)
 result.reset_index(inplace=True)
 result.drop('index', axis=1, inplace=True)
 result = result.dropna()
@@ -94,6 +105,8 @@ data = result.T.to_dict().values()
 y = result.tweetsperacre.as_matrix()
 
 
+#print data[0]
+#sys.exit()
 
 #model definition
 
@@ -108,10 +121,12 @@ class ColumnSelector(sk.base.BaseEstimator, sk.base.TransformerMixin):
     def transform(self, X):
         return [[x[column] for column in self.column_names] for x in X]
 
-linpredictors = ['Clear', 'Fog', 'Haze', 'Heavy Rain', 'Light Rain', 
+linpredictors = ['Clear', 'Fog', 'Haze', 'Heavy Rain', 'Light Rain', 'January', 'February', 'March',
+                 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December',
                  'Mostly Cloudy', 'Overcast', 'Partly Cloudy', 'Rain', 'Scattered Clouds', 
                  'business_day', 'California Adventure', 'Disneyland', 'holiday', 'hour', 
-                 'hour2', 'temp', 'temp2', 'wind', 'wind2']
+                 'hour2', 'temp', 'temp2', 'wind', 'wind2', 'Monday', 'Tuesday', 'Wednesday', 'Thursday',
+                 'Friday', 'Saturday', 'Sunday']
     
 class EnsembleRegressor(sk.base.BaseEstimator, sk.base.RegressorMixin):
     """Joins a linear, random forest, and nearest neighbors model."""
@@ -170,8 +185,8 @@ class EnsembleRegressor(sk.base.BaseEstimator, sk.base.RegressorMixin):
 #print nested_cv.score(data, y)    
 
 #use good params
-nbrs = 117
-samples = 51
+nbrs = 114
+samples = 48
 tweet_reg = pipeline.Pipeline([('colsel', ColumnSelector(linpredictors)),
                                ('est', EnsembleRegressor(nbrs, samples))])  
 
