@@ -191,35 +191,3 @@ print scores.mean()
 tweet_reg.fit(data, y)
 print tweet_reg.score(data, y)
 dill.dump(tweet_reg, open('fiveday_model.pkl', 'w'))
-
-#prediction testing
-
-#testdat = [{'California Adventure': 0.0,
-# 'Clear': 1.0,
-# 'Disneyland': 1.0,
-# 'Haze': 0.0,
-# 'Heavy Rain': 0.0,
-# 'Light Rain': 0.0,
-# 'Mostly Cloudy': 0.0,
-# 'Overcast': 0.0,
-# 'Partly Cloudy': 0.0,
-# 'business_day': True,
-# 'dow': 6,
-#  0:0, 
-#  1:0,
-#  2:0,
-#  3:0,
-#  4:0,
-#  5:0,
-#  6:1,
-# 'holiday': False,
-# 'humidity': 36.75,
-# 'lotemp': 80.0,
-# 'lotemp2': 6400.0,
-# 'precip': 0.0,
-# 'size': 85,
-# 'temp': 90.0,
-# 'temp2': 8100.0,
-# 'wind': 3.9499999999999993,
-# 'wind2': 15.602499999999994}]
-#tweet_reg.predict(testdat)

@@ -8,10 +8,10 @@ import numpy as np
 import scipy.stats
 import sklearn as sk
 from sklearn import preprocessing, cross_validation, linear_model, neighbors, feature_extraction, grid_search, pipeline, metrics, ensemble
+import theanets
 import dill
 import sys
 dill.settings['recurse']=True
-#import matplotlib.pyplot as plt
 
 
 #get and organize data
@@ -26,11 +26,7 @@ tweetdf.rename(columns={0: 'tweetid', 1: 'user', 2: 'timestamps', 3: 'search', 4
 tweetdf.search = tweetdf.search.apply(lambda x: x.title())
 
 tweetdf['dates'] = [str(dt.date()) for dt in tweetdf.timestamps]
-#tweetdf.drop
-#print tweetdf[(tweetdf['search'] == 'Disneyland') & (tweetdf['dates'] =='2015-07-22')]
 tweetdf.drop(tweetdf[(tweetdf['search'] == 'Disneyland') & (tweetdf['dates'] =='2015-07-17')].index, inplace=True)
-#print tweetdf[(tweetdf['search'] == 'Disneyland') & (tweetdf['dates'] =='2015-07-22')]
-#print tweetdf[(tweetdf['search'] == 'California Adventure') & (tweetdf['dates'] =='2015-07-22')]
 tweetdf.drop('dates', axis=1, inplace=True)
 
 #now bin tweets by hour
@@ -63,7 +59,7 @@ us_holidays = holidays.UnitedStates()
 tweetwaits['holiday'] = [day in us_holidays for day in tweetwaits.hod]
 tweetwaits['month'] = [dt.strftime('%B') for dt in tweetwaits.hod]
 tweetwaits['day'] = [dt.strftime('%A') for dt in tweetwaits.hod]
-tweetwaits = tweetwaits[tweetwaits.hod < datetime.datetime.strptime('2016-05-12','%Y-%m-%d')] #2016/05/12
+
 #close SQL connection
 conn.close()
 
@@ -100,14 +96,6 @@ hourly_averages.drop(['user', 'size'], axis=1, inplace=True)
 hour_averages = hourly_averages.T.to_dict().values()
 dill.dump(hour_averages, open('hourly_averages.pkl', 'w'))
 
-#plot
-#disney = result[result['search']=='Disneyland'].sort('hod')
-#calad = result[result['search']=='California Adventure'].sort('hod')
-#print calad.tail()
-#plt.plot(disney.hod, disney.tweetsperacre)
-#plt.ylabel('some numbers')
-#plt.show()
-
 #data for running the model
 result.drop(['conditions', 'search', 'day', 'month'], axis=1, inplace=True)
 resulttm1 = result.drop(result.index[[0,1]]).reset_index()
@@ -116,12 +104,11 @@ result = pd.concat([resulttm1, result], axis=1)
 result = result.dropna()
 #pd.set_option("display.max_columns",101)
 #print result.head()
-data = result.T.to_dict().values()
-y = result.tweetsperacre.as_matrix()
+#data = result.T.to_dict().values()
+y = pd.Series(result.tweetsperacre)
 
 #print data[0]
 #sys.exit()
-
 
 #model definition
 
@@ -134,24 +121,19 @@ class ColumnSelector(sk.base.BaseEstimator, sk.base.TransformerMixin):
         return self
 
     def transform(self, X):
-        return [[x[column] for column in self.column_names] for x in X]
+        #return [[x[column] for column in self.column_names] for x in X]
+        return pd.DataFrame(X, columns=linpredictors)
+        print X.head()
 
 linpredictors = ['Clear', 'Fog', 'Haze', 'Heavy Rain', 'Light Rain', 'January', 'February', 'March',
-                 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December',
+                 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November',
                  'Mostly Cloudy', 'Overcast', 'Partly Cloudy', 'Rain', 'Scattered Clouds', 
                  'business_day', 'California Adventure', 'Disneyland', 'holiday', 'hour', 
                  'hour2', 'temp', 'temp2', 'wind', 'wind2', 'Monday', 'Tuesday', 'Wednesday', 'Thursday',
-                 'Friday', 'Saturday', 'Sunday']#,
-                 #'Clear_tm1', 'Fog_tm1', 'Haze_tm1', 'Heavy Rain_tm1', 'Light Rain_tm1',
-                 #'January_tm1', 'February_tm1', 'March_tm1', 'April_tm1', 'May_tm1', 'June_tm1',
-                 #'July_tm1', 'August_tm1', 'September_tm1', 'October_tm1', 'November_tm1', 'December_tm1',
-                 #'Mostly Cloudy_tm1', 'Overcast_tm1', 'Partly Cloudy_tm1', 'Rain_tm1', 'Scattered Clouds_tm1', 
-                 #'business_day_tm1', 'California Adventure_tm1', 'Disneyland_tm1', 'holiday_tm1', 'hour_tm1', 
-                 #'hour2_tm1', 'temp_tm1', 'temp2_tm1', 'wind_tm1', 'wind2_tm1', 'Monday_tm1',
-                 #'Tuesday_tm1', 'Wednesday_tm1', 'Thursday_tm1', 'Friday_tm1', 'Saturday_tm1', 'Sunday_tm1']
+                 'Friday', 'Saturday']
     
 class EnsembleRegressor(sk.base.BaseEstimator, sk.base.RegressorMixin):
-    """Joins a linear, random forest, and nearest neighbors model."""
+
     def __init__(self, nbrs, samples):
         self.nbrs = nbrs
         self.samples = samples
@@ -164,47 +146,39 @@ class EnsembleRegressor(sk.base.BaseEstimator, sk.base.RegressorMixin):
         self.nearest_neighbors = neighbors.KNeighborsRegressor(n_neighbors=self.nbrs).fit(X, y_err)
         self.random_forest = ensemble.RandomForestRegressor(min_samples_leaf=self.samples).fit(X, y_err)
 
-        #X_ensemble = pd.DataFrame({
-        #    "NEAR": self.nearest_neighbors.predict(X),
-        #    "FOREST": self.random_forest.predict(X),
-        #    "LINEAR": self.linear_regression.predict(X),
-        #})
-        
-        near=self.nearest_neighbors.predict(X)
-        forest=self.random_forest.predict(X)
-        linear=self.linear_regression.predict(X)
-        X_ensemble=[[near[i],forest[i],linear[i]] for i in range(len(X))]
+        X_ensemble = pd.DataFrame({
+            "NEAR": self.nearest_neighbors.predict(X),
+            "FOREST": self.random_forest.predict(X),
+            "LINEAR": self.linear_regression.predict(X),
+        })
 
-        self.ensemble_regression = linear_model.LinearRegression().fit(X_ensemble, y)
+        self.ensemble_regression = theanets.Regressor(layers=[len(linpredictors), 100, 100, 100, 1])
+        self.ensemble_regression.train([X, pd.DataFrame(y)], hidden_dropout=0.5)
         return self
     
     def predict(self, X):
-        #X_ensemble = pd.DataFrame({
-        #    "NEAR": self.nearest_neighbors.predict(X),
-        #    "FOREST": self.random_forest.predict(X),
-        #    "LINEAR": self.linear_regression.predict(X),
-        #})
 
-        near=self.nearest_neighbors.predict(X)
-        forest=self.random_forest.predict(X)
-        linear=self.linear_regression.predict(X)
-        X_ensemble=[[near[i],forest[i],linear[i]] for i in range(len(X))]
-
-        return self.ensemble_regression.predict(X_ensemble)
+        X_ensemble = pd.DataFrame({
+            "NEAR":self.nearest_neighbors.predict(X),
+            "FOREST": self.random_forest.predict(X),
+            "LINEAR": self.linear_regression.predict(X)
+        })
+        
+        return self.ensemble_regression.predict(X)
 
 
       
 #run the model
 
 #nbrs=100
-#samples=50
+#samples=57
 #nestedreg = pipeline.Pipeline([('colsel', ColumnSelector(linpredictors)),
 #                               ('est', EnsembleRegressor(nbrs, samples))])  
-#parameters = dict(est__nbrs=range(99,103,1), est__samples=range(70, 79,1))
+#parameters = dict(est__nbrs=range(90,122,3), est__samples=range(30,70,3))
 #nested_cv = sk.grid_search.GridSearchCV(nestedreg, param_grid=parameters)
-#nested_cv.fit(data, y)
+#nested_cv.fit(result, y)
 #print nested_cv.best_params_
-#print nested_cv.score(data, y)    
+#print nested_cv.score(result, y)    
 
 #use good params
 nbrs = 99
@@ -213,14 +187,25 @@ tweet_reg = pipeline.Pipeline([('colsel', ColumnSelector(linpredictors)),
                                ('est', EnsembleRegressor(nbrs, samples))])  
 
 #cross validate
-loo = cross_validation.KFold(len(y), 100, shuffle=True)
-scores = cross_validation.cross_val_score(tweet_reg, data, y, cv=loo)
-print scores.mean()
+#loo = cross_validation.KFold(len(y), 100, shuffle=True)
+#scores = cross_validation.cross_val_score(tweet_reg, result, y, cv=loo)
+#print scores.mean()
 
 #finalize
-tweet_reg.fit(data,y)
-print tweet_reg.score(data, y)
-dill.dump(tweet_reg, open('hourly_model.pkl', 'w'))
+tweet_reg.fit(result,y)
+#predictions = tweet_reg.predict(result)
+
+print tweet_reg.score(result,y)
+
+#ylist = y.tolist()
+#errors=[(predictions[i]-ylist[i])**2 for i in range(len(predictions))]
+#ydiff=[(ylist[i]-np.mean(y))**2 for i in range(len(predictions))]
+#errorsum = np.sum(errors)
+#ydiffsum = np.sum(ydiff)
+#R2 = 1 - (errorsum/ydiffsum)
+#print R2
+
+#dill.dump(tweet_reg, open('hourly_model.pkl', 'w'))
 
 
 
