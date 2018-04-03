@@ -1,6 +1,6 @@
-#DI Capstone Project
+# DI Capstone Project
 
-##Far from the madding crowd? Modeling crowding at outdoor parks
+## Far from the madding crowd? Modeling crowding at outdoor parks
 
 I am working on a project that uses twitter and weather data to develop predictive models of outdoor recreational park usage. For this project I take advantage of the fact that social media posts can track crowds, and that crowds at outdoor parks are correlated with weather.
 
